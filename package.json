@@ -436,6 +436,12 @@
       "hash": "QmXxGS5QsUxpR3iqL5DjmsYPHR1Yz74siRQ4ChJqWFosMh",
       "name": "go-block-format",
       "version": "0.1.2"
+    },
+    {
+      "author": "magik6k",
+      "hash": "QmTC7BY2viSAbPbGte6NyMZJCC2xheaRBYKEn4BuzTxe7W",
+      "name": "go-ds-badger",
+      "version": "0.1.10"
     }
   ],
   "gxVersion": "0.10.0",
