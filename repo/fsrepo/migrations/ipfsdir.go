@@ -3,13 +3,12 @@ package migrations
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
+	"github.com/ipfs/kubo/misc/fsutil"
 )
 
 const (
@@ -17,10 +16,6 @@ const (
 	defIpfsDir  = ".ipfs"
 	versionFile = "version"
 )
-
-func init() {
-	homedir.DisableCache = true
-}
 
 // IpfsDir returns the path of the ipfs directory.  If dir specified, then
 // returns the expanded version dir.  If dir is "", then return the directory
@@ -32,14 +27,14 @@ func IpfsDir(dir string) (string, error) {
 		dir = os.Getenv(envIpfsPath)
 	}
 	if dir != "" {
-		dir, err = homedir.Expand(dir)
+		dir, err = fsutil.ExpandHome(dir)
 		if err != nil {
 			return "", err
 		}
 		return dir, nil
 	}
 
-	home, err := homedir.Dir()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
@@ -85,11 +80,11 @@ func WriteRepoVersion(ipfsDir string, version int) error {
 	}
 
 	vFilePath := filepath.Join(ipfsDir, versionFile)
-	return ioutil.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0644)
+	return os.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0o644)
 }
 
 func repoVersion(ipfsDir string) (int, error) {
-	c, err := ioutil.ReadFile(filepath.Join(ipfsDir, versionFile))
+	c, err := os.ReadFile(filepath.Join(ipfsDir, versionFile))
 	if err != nil {
 		return 0, err
 	}

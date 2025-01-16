@@ -110,6 +110,13 @@ test_config_cmd() {
     grep "\"beep3\": false," actual
   '
 
+  test_expect_success "'ipfs config show --config-file' works" '
+    mv "$IPFS_PATH/config" "$IPFS_PATH/config-moved" &&
+    ipfs config --config-file "$IPFS_PATH/config-moved" show >moved &&
+    test_cmp moved actual &&
+    mv "$IPFS_PATH/config-moved" "$IPFS_PATH/config"
+  '
+
   test_expect_success "setup for config replace test" '
     cp "$IPFS_PATH/config" newconfig.json &&
     sed -i"~" -e /PrivKey/d -e s/10GB/11GB/ newconfig.json &&
@@ -274,7 +281,7 @@ test_config_cmd() {
 
   # won't work as it changes datastore definition, which makes ipfs not launch
   # without converting first
-  # test_profile_apply_revert badgerds
+  # test_profile_apply_revert pebbleds
 
   test_expect_success "cleanup config backups" '
     find "$IPFS_PATH" -name "config-*" -exec rm {} \;

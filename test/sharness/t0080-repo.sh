@@ -8,7 +8,7 @@ test_description="Test ipfs repo operations"
 
 . lib/test-lib.sh
 
-test_init_ipfs
+test_init_ipfs --empty-repo=false
 test_launch_ipfs_daemon_without_network
 
 test_expect_success "'ipfs repo gc' succeeds" '
@@ -54,6 +54,17 @@ test_expect_success "ipfs repo gc fully reverse ipfs add (part 1)" '
   hash=$(ipfs add -q gcfile) &&
   ipfs pin rm -r $hash &&
   ipfs repo gc
+'
+test_expect_success "'ipfs repo gc --silent' succeeds (no output)" '
+  echo "should be empty" >bfile &&
+  HASH2=`ipfs add -q bfile` &&
+  ipfs cat "$HASH2" >expected11 &&
+  test_cmp expected11 bfile &&
+  ipfs pin rm -r "$HASH2" &&
+  ipfs repo gc --silent >gc_out_empty &&
+  test_cmp /dev/null gc_out_empty &&
+  test_must_fail ipfs cat "$HASH2" 2>err_expected1 &&
+  grep "Error: block was not found locally (offline): ipld: could not find $HASH2" err_expected1
 '
 
 test_kill_ipfs_daemon
@@ -109,17 +120,25 @@ test_expect_success "remove direct pin" '
 '
 
 test_expect_success "'ipfs repo gc' removes file" '
-  ipfs repo gc >actual7 &&
-  grep "removed $HASH" actual7
+  ipfs block stat $HASH &&
+  ipfs repo gc &&
+  test_must_fail ipfs block stat $HASH
 '
 
+# Convert all to a base32-multihash as refs local outputs cidv1 raw
+# Technically converting refs local output would suffice, but this is more
+# future proof if we ever switch to adding the files with cid-version 1.
 test_expect_success "'ipfs refs local' no longer shows file" '
   EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
-  ipfs refs local >actual8 &&
-  grep "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y" actual8 &&
-  grep "$EMPTY_DIR" actual8 &&
-  grep "$HASH_WELCOME_DOCS" actual8 &&
-  test_must_fail grep "$HASH" actual8
+  HASH_MH=`cid-fmt -b base32 "%M" "$HASH"` &&
+  HARDCODED_HASH_MH=`cid-fmt -b base32 "%M" "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"` &&
+  EMPTY_DIR_MH=`cid-fmt -b base32 "%M" "$EMPTY_DIR"` &&
+  HASH_WELCOME_DOCS_MH=`cid-fmt -b base32 "%M" "$HASH_WELCOME_DOCS"` &&
+  ipfs refs local | cid-fmt -b base32 --filter "%M" >actual8 &&
+  grep "$HARDCODED_HASH_MH" actual8 &&
+  grep "$EMPTY_DIR_MH" actual8 &&
+  grep "$HASH_WELCOME_DOCS_MH" actual8 &&
+  test_must_fail grep "$HASH_MH" actual8
 '
 
 test_expect_success "adding multiblock random file succeeds" '
